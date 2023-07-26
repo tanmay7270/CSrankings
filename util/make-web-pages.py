@@ -49,9 +49,9 @@ with codecs.open("homepages.csv", "a", "utf8") as outfile:
         if name in homepages:
             # ...unless it's a Google search page, then we will try again to fix it.
             match = re.search("www.google.com", homepages[name])
-            if match == None:
+            if match is None:
                 continue
-        str = name + " " + facultydict[name]
+        str = f"{name} {facultydict[name]}"
         name = name.decode("utf8")
         # Grab first result from Google search.
         results = google.search(str, stop=1)
@@ -70,21 +70,14 @@ with codecs.open("homepages.csv", "a", "utf8") as outfile:
         match = re.search("www.google.com", actualURL)
         print(name)
         try:
-            if match == None:
-                print(name + "," + actualURL)
-                outfile.write(name + "," + actualURL + "\n")
-                outfile.flush()
-            else:
-                if not (name in homepages):
+            if match != None and name not in homepages or match is None:
                     # It's a new name, what are you gonna do (even if it is a
                     # Google link, include it).
-                    print(name + "," + actualURL)
-                    outfile.write(name + "," + actualURL + "\n")
-                    outfile.flush()
-                else:
-                    print(
-                        "Lookup failed for " + name + " -- found " + actualURL
-                    )
+                print(f"{name},{actualURL}")
+                outfile.write(f"{name},{actualURL}" + "\n")
+                outfile.flush()
+            else:
+                print(f"Lookup failed for {name} -- found {actualURL}")
         except:
             continue
 

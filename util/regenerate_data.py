@@ -130,16 +130,8 @@ def build_dicts() -> None:
             aliasdict[row["alias"]] = row["name"]
             reversealiasdict[row["name"]] = row["alias"]
 
-    # Count and report the total number of faculty in the database.
-    totalFaculty = 0
-    for name in facultydict:
-        # Exclude aliases.
-        if name in aliasdict:
-            continue
-        totalFaculty += 1
-    print(
-        "Total faculty members currently in the database: " + str(totalFaculty)
-    )
+    totalFaculty = sum(1 for name in facultydict if name not in aliasdict)
+    print(f"Total faculty members currently in the database: {str(totalFaculty)}")
 
 
 def handle_article(_: Any, article: ArticleType) -> bool:  # type: ignore
@@ -150,21 +142,20 @@ def handle_article(_: Any, article: ArticleType) -> bool:  # type: ignore
     counter += 1
     try:
         if counter % 10000 == 0:
-            print(str(counter) + " papers processed.")
+            print(f"{counter} papers processed.")
         if "author" not in article:
             return True
         # Fix if there is just one author.
         authorList: List[str] = []
         if type(article["author"]) == list:
             authorList = article["author"]
+        elif type(article["author"]) == str:
+            authorList = [str(article["author"])]
+        elif type(article["author"]) is collections.OrderedDict:
+            authorList = [article["author"]["#text"]]  # type: ignore
         else:
-            if type(article["author"]) == str:
-                authorList = [str(article["author"])]
-            elif type(article["author"]) is collections.OrderedDict:
-                authorList = [article["author"]["#text"]]  # type: ignore
-            else:
-                print("***Unknown record type, skipping.***")
-                return True
+            print("***Unknown record type, skipping.***")
+            return True
         authorsOnPaper = len(authorList)
         foundOneInDict = False or args.all
         if not args.all:
@@ -343,7 +334,7 @@ def main() -> None:
     build_dicts()
     do_it()
     dump_it()
-    print("Total papers counted = " + str(totalPapers))
+    print(f"Total papers counted = {str(totalPapers)}")
 
 
 if __name__ == "__main__":

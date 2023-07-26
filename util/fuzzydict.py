@@ -115,10 +115,7 @@ class FuzzyDict(dict):
 
     def __contains__(self, item):
         "Overides Dictionary __contains__ to use fuzzy matching"
-        if self._search(item, True)[0]:
-            return True
-        else:
-            return False
+        return bool(self._search(item, True)[0])
 
     def __getitem__(self, lookfor):
         "Overides Dictionary __getitem__ to use fuzzy matching"

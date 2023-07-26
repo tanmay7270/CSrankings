@@ -23,4 +23,4 @@ with open("homepages-sorted.csv", mode="w") as outfile:
     for name in sorted(homepages):
         if name == "name":
             continue
-        outfile.write(name + "," + homepages[name] + "\n")
+        outfile.write(f"{name},{homepages[name]}" + "\n")

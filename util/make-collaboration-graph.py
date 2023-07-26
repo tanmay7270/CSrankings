@@ -137,15 +137,11 @@ areaList = [
     {"area": "na", "title": "Other", "color": nacolor},
 ]
 
-colorList = []
-for item in areaList:
-    colorList.append(item["color"])
-
-areaNum = {}
-ind = 0
-for i in areaList:
-    areaNum[areaList[ind]["area"]] = colorGroup[colorList[ind]]
-    ind += 1
+colorList = [item["color"] for item in areaList]
+areaNum = {
+    areaList[ind]["area"]: colorGroup[colorList[ind]]
+    for ind, i in enumerate(areaList)
+}
 
 
 def canonicalName(name):
@@ -165,19 +161,18 @@ def canonicalName(name):
     canonical = canonical.replace("0013", "")
     canonical = canonical.replace("0014", "")
     canonical = canonical.replace("0015", "")
-    canonical = HumanName(canonical).first + " " + HumanName(canonical).last
+    canonical = f"{HumanName(canonical).first} {HumanName(canonical).last}"
     return canonical
 
 
 def displayName(name):
     canonical = canonicalName(name)
-    display = HumanName(canonical).first[0] + ". " + HumanName(canonical).last
-    return display
+    return f"{HumanName(canonical).first[0]}. {HumanName(canonical).last}"
 
 
 def addNode(name, nodes, addedNode, authorIndex, authorInd):
     # if not name.decode('utf8') in addedNode:
-    if not name in addedNode:
+    if name not in addedNode:
         if name in maxareas:
             nodes.append(
                 {
@@ -221,7 +216,7 @@ def makegraph(institution, fname, dir):
         # Now go through all the coauthors (we may not find any, which we handle as a special case below).
         foundOne = False
         for coauth in coauthors.get(author, []):
-            print("author = " + author + ", coauth = " + coauth)
+            print(f"author = {author}, coauth = {coauth}")
             if coauth in aliases:
                 coauth = aliases[coauth]
             if coauth in facultydict:
@@ -237,7 +232,7 @@ def makegraph(institution, fname, dir):
                     # dot.node(coauth.decode('utf8'),color=authorColor[coauth],style="filled")
                     # Force co-author to be added here so we can reference him/her.
                     addNode(coauth, nodes, addedNode, authorIndex, authorInd)
-                    if not realname + coauthorrealname in edges:
+                    if realname + coauthorrealname not in edges:
                         degree += 1
                         sumdegree += 1
                         if degree > maxdegree:
@@ -251,9 +246,7 @@ def makegraph(institution, fname, dir):
                             }
                         )
                         # print("adding " + realname.encode('utf8') + " <-> " + coauthorrealname.encode('utf8'))
-                        print(
-                            "adding " + realname + " <-> " + coauthorrealname
-                        )
+                        print(f"adding {realname} <-> {coauthorrealname}")
                         edges[realname + coauthorrealname] = 0
                         edges[coauthorrealname + realname] = 0
                     edges[realname + coauthorrealname] += 1
@@ -270,9 +263,9 @@ def makegraph(institution, fname, dir):
                 realname + realname
             ] = 2  # include one bogus co-authored article (2 b/c divided by 2 later)
             if realname not in authorIndex:
-                print(realname + " NOT FOUND")
+                print(f"{realname} NOT FOUND")
                 if author not in authorIndex:
-                    print(author + " ALSO NOT FOUND")
+                    print(f"{author} ALSO NOT FOUND")
                 print(authorIndex)
 
             links.append(
@@ -304,10 +297,7 @@ def makegraph(institution, fname, dir):
             line += displayName(name)
             line += ","
             line += colors[node["group"] - 1]
-            if coauthored[node["nodeName"]]:
-                line += ",1"
-            else:
-                line += ",0"
+            line += ",1" if coauthored[node["nodeName"]] else ",0"
             f.write(line + "\n")
     with open(dir + fname + "-matrix.json", "w") as f:
         matrix = []
@@ -348,8 +338,8 @@ with open("faculty-affiliations.csv", "r") as csvfile:
         facultydict[name] = aff
 
 institutions = {}
-for name in facultydict:
-    if not facultydict[name] in institutions:
+for name, value in facultydict.items():
+    if value not in institutions:
         institutions[facultydict[name]] = True
 
 institutions = OrderedDict(sorted(institutions.items(), key=lambda t: t[0]))
@@ -381,29 +371,19 @@ with open("faculty-coauthors.csv", "r") as csvfile:
         #        print("year = " + str(year))
         if year < startyear or year > endyear:
             continue
-        if not author in coauthors:
+        if author not in coauthors:
             coauthors[author] = []
         coauthors[author].append(coauthor)
-        # if not coauthors.has_key(coauthor):
-        #    coauthors[coauthor] = []
-        # coauthors[coauthor].append(author)
+            # if not coauthors.has_key(coauthor):
+            #    coauthors[coauthor] = []
+            # coauthors[coauthor].append(author)
 
-# Now build up the color mapping.
-# color: int -> color
-color = {}
-i = 0
-for c in colorList:
-    color[i] = c
-    i += 1
-
+color = dict(enumerate(colorList))
 # areaColor: area name -> color
 areaColor = {}
-i = 0
-for a in areaList:
+for i, a in enumerate(areaList):
     areaName = a["area"]
     areaColor[areaName] = color[i]
-    i += 1
-
 pubs = {}
 
 # "name","dept","area","count","adjustedcount","year"
@@ -418,9 +398,9 @@ with open("all-author-info.csv") as csvfile:
             continue
         if author in aliases:
             author = aliases[author]
-        if not author in pubs:
+        if author not in pubs:
             pubs[author] = {}
-        if not area in pubs[author]:
+        if area not in pubs[author]:
             pubs[author][area] = 0
         pubs[author][area] += 1
 
@@ -429,25 +409,20 @@ with open("all-author-info.csv") as csvfile:
 
 maxareas = {}
 
-for author in pubs:
+for author, value_ in pubs.items():
     maxarea = "na"
     maxcount = 0
-    for area in pubs[author]:
+    for area in value_:
         # print (author,area,pubs[author][area])
         if pubs[author][area] > maxcount:
-            if not area == "na":
+            if area != "na":
                 maxarea = area
                 maxcount = pubs[author][area]
     maxareas[author] = maxarea
 
-authorColor = {}
-
-for author in maxareas:
-    authorColor[author] = areaColor[maxareas[author]]
-
-
+authorColor = {author: areaColor[maxareas[author]] for author in maxareas}
 dir = "collab/graphs/"
 
 for institution in institutions:
-    print('<option value="' + institution + '">' + institution + "</option>")
-    makegraph(institution, institution + "-graph", dir)
+    print(f'<option value="{institution}">{institution}</option>')
+    makegraph(institution, f"{institution}-graph", dir)

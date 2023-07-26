@@ -31,12 +31,12 @@ print(strip_accents("Ítalo")[0].lower())
 fieldnames = ["name", "affiliation", "homepage", "scholarid"]
 with open("csrankings.csv", mode="r") as infile:
     reader = csv.DictReader(infile)
-    arr = [row for row in reader]
+    arr = list(reader)
     arr.sort(key=lambda a: strip_accents(a["name"]))
     index = 0
     # Create all the files with headers
     for ch in list(string.ascii_lowercase):
-        fname = "csrankings-" + ch + ".csv"
+        fname = f"csrankings-{ch}.csv"
         with open(fname, mode="w") as outfile:
             writer = csv.DictWriter(outfile, fieldnames)
             writer.writeheader()
@@ -44,7 +44,7 @@ with open("csrankings.csv", mode="r") as infile:
     outfile = {}
     writer = {}
     for ch in list(string.ascii_lowercase):
-        fname = "csrankings-" + ch + ".csv"
+        fname = f"csrankings-{ch}.csv"
         outfile[ch] = open(fname, mode="a")
         writer[ch] = csv.DictWriter(outfile[ch], fieldnames)
     for item in arr:

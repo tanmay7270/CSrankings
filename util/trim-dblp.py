@@ -21,15 +21,14 @@ def pagecount(input):
     end = 0
     count = 0
 
-    if not (pageCounterMatcher1 is None):
+    if pageCounterMatcher1 is not None:
         start = int(pageCounterMatcher1.group(1))
         end = int(pageCounterMatcher1.group(2))
         count = end - start + 1
-    else:
-        if not (pageCounterMatcher2 is None):
-            start = int(pageCounterMatcher2.group(1))
-            end = int(pageCounterMatcher2.group(2))
-            count = end - start + 1
+    elif pageCounterMatcher2 is not None:
+        start = int(pageCounterMatcher2.group(1))
+        end = int(pageCounterMatcher2.group(2))
+        count = end - start + 1
     return count
 
 

@@ -17,25 +17,22 @@ for i in row_box:
     if i.td is not None:
         name = i.td.find("a").text
         year = i.find("td", attrs={"role": "rowheader"})
-        if year is not None:
-            year = year.text
-        else:
-            year = "0"
+        year = year.text if year is not None else "0"
         # Process the name, adding dots to middle names if needed.
         name = HumanName(name)
         if len(name.first) == 1:
-            name.first = name.first + "."
+            name.first = f"{name.first}."
         if name.middle is not "":
             if len(name.middle) == 1:
                 name.middle += "."
-            names[name.first + " " + name.middle + " " + name.last] = year
+            names[f"{name.first} {name.middle} {name.last}"] = year
         else:
-            names[name.first + " " + name.last] = year
+            names[f"{name.first} {name.last}"] = year
 
 # Write out a csv.
 with open("acm-fellows.csv", "w", newline="") as csvfile:
     fieldnames = ["name", "year"]
     wr = csv.DictWriter(csvfile, fieldnames=fieldnames)
     wr.writeheader()
-    for n in names:
-        wr.writerow({"name": n, "year": names[n]})
+    for n, value in names.items():
+        wr.writerow({"name": n, "year": value})

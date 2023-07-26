@@ -190,10 +190,7 @@ if sys.version_info[0] == 3:
 else:
 
     def encode(s):
-        if isinstance(s, basestring):
-            return s.encode("utf-8")  # pylint: disable-msg=C0103
-        else:
-            return str(s)
+        return s.encode("utf-8") if isinstance(s, basestring) else str(s)
 
 
 class Error(Exception):
@@ -278,9 +275,7 @@ class ScholarArticle(object):
         self.citation_data = None
 
     def __getitem__(self, key):
-        if key in self.attrs:
-            return self.attrs[key][0]
-        return None
+        return self.attrs[key][0] if key in self.attrs else None
 
     def __len__(self):
         return len(self.attrs)
@@ -302,12 +297,9 @@ class ScholarArticle(object):
         # Get items sorted in specified order:
         items = sorted(list(self.attrs.values()), key=lambda item: item[2])
         # Find largest label length:
-        max_label_len = max([len(str(item[1])) for item in items])
+        max_label_len = max(len(str(item[1])) for item in items)
         fmt = "%%%ds %%s" % max_label_len
-        res = []
-        for item in items:
-            if item[0] is not None:
-                res.append(fmt % (item[1], item[0]))
+        res = [fmt % (item[1], item[0]) for item in items if item[0] is not None]
         return "\n".join(res)
 
     def as_csv(self, header=False, sep="|"):
@@ -507,7 +499,7 @@ class ScholarArticleParser(object):
         if path.startswith("http://"):
             return path
         if not path.startswith("/"):
-            path = "/" + path
+            path = f"/{path}"
         return self.site + path
 
     def _strip_url_arg(self, arg, url):
@@ -515,11 +507,8 @@ class ScholarArticleParser(object):
         parts = url.split("?", 1)
         if len(parts) != 2:
             return url
-        res = []
-        for part in parts[1].split("&"):
-            if not part.startswith(arg + "="):
-                res.append(part)
-        return parts[0] + "?" + "&".join(res)
+        res = [part for part in parts[1].split("&") if not part.startswith(f"{arg}=")]
+        return f"{parts[0]}?" + "&".join(res)
 
 
 class ScholarArticleParser120201(ScholarArticleParser):
@@ -664,14 +653,12 @@ class ScholarQuery(object):
         if len(self.attrs) == 0:
             self.attrs[key] = [default_value, label, 0]
             return
-        idx = max([item[2] for item in self.attrs.values()]) + 1
+        idx = max(item[2] for item in self.attrs.values()) + 1
         self.attrs[key] = [default_value, label, idx]
 
     def __getitem__(self, key):
         """Getter for attribute value. Returns None if no such key."""
-        if key in self.attrs:
-            return self.attrs[key][0]
-        return None
+        return self.attrs[key][0] if key in self.attrs else None
 
     def __setitem__(self, key, item):
         """Setter for attribute value. Does nothing if no such key."""
@@ -698,7 +685,7 @@ class ScholarQuery(object):
         for phrase in query.split(","):
             phrase = phrase.strip()
             if phrase.find(" ") > 0:
-                phrase = '"' + phrase + '"'
+                phrase = f'"{phrase}"'
             phrases.append(phrase)
         return " ".join(phrases)
 
@@ -899,7 +886,7 @@ class ScholarSettings(object):
     def set_citation_format(self, citform):
         citform = ScholarUtils.ensure_int(citform)
         if citform < 0 or citform > self.CITFORM_BIBTEX:
-            raise FormatError('citation format invalid, is "%s"' % citform)
+            raise FormatError(f'citation format invalid, is "{citform}"')
         self.citform = citform
         self._is_configured = True
 
@@ -975,9 +962,7 @@ class ScholarQuerier(object):
                 )
                 ScholarUtils.log("info", "loaded cookies file")
             except Exception as msg:
-                ScholarUtils.log(
-                    "warn", "could not load cookies file: %s" % msg
-                )
+                ScholarUtils.log("warn", f"could not load cookies file: {msg}")
                 self.cjar = MozillaCookieJar()  # Just to be safe
 
         self.opener = build_opener(HTTPCookieProcessor(self.cjar))
@@ -1109,7 +1094,7 @@ class ScholarQuerier(object):
             ScholarUtils.log("info", "saved cookies file")
             return True
         except Exception as msg:
-            ScholarUtils.log("warn", "could not save cookies file: %s" % msg)
+            ScholarUtils.log("warn", f"could not save cookies file: {msg}")
             return False
 
     def _get_http_response(self, url, log_msg=None, err_msg=None):
@@ -1121,7 +1106,7 @@ class ScholarQuerier(object):
         if err_msg is None:
             err_msg = "request failed"
         try:
-            ScholarUtils.log("info", "requesting %s" % unquote(url))
+            ScholarUtils.log("info", f"requesting {unquote(url)}")
 
             req = Request(
                 url=url, headers={"User-Agent": ScholarConf.USER_AGENT}
@@ -1131,8 +1116,8 @@ class ScholarQuerier(object):
 
             ScholarUtils.log("debug", log_msg)
             ScholarUtils.log("debug", ">>>>" + "-" * 68)
-            ScholarUtils.log("debug", "url: %s" % hdl.geturl())
-            ScholarUtils.log("debug", "result: %s" % hdl.getcode())
+            ScholarUtils.log("debug", f"url: {hdl.geturl()}")
+            ScholarUtils.log("debug", f"result: {hdl.getcode()}")
             ScholarUtils.log("debug", "headers:\n" + str(hdl.info()))
             ScholarUtils.log(
                 "debug", "data:\n" + html.decode("utf-8")
@@ -1141,7 +1126,7 @@ class ScholarQuerier(object):
 
             return html
         except Exception as err:
-            ScholarUtils.log("info", err_msg + ": %s" % err)
+            ScholarUtils.log("info", f"{err_msg}: {err}")
             return None
 
 
@@ -1155,7 +1140,7 @@ def txt(querier, with_globals):
                 list(querier.articles[0].attrs.values()),
                 key=lambda item: item[2],
             )
-            max_label_len = max([len(str(item[1])) for item in items])
+            max_label_len = max(len(str(item[1])) for item in items)
 
         # Get items sorted in specified order:
         items = sorted(
@@ -1373,14 +1358,12 @@ scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
         ScholarUtils.log("info", "using log level %d" % ScholarConf.LOG_LEVEL)
 
     if options.version:
-        print("This is scholar.py %s." % ScholarConf.VERSION)
+        print(f"This is scholar.py {ScholarConf.VERSION}.")
         return 0
 
     if options.cookie_file:
         ScholarConf.COOKIE_JAR_FILE = options.cookie_file
 
-    # Sanity-check the options: if they include a cluster ID query, it
-    # makes no sense to have search arguments:
     if options.cluster_id is not None:
         if (
             options.author

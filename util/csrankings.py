@@ -34,9 +34,8 @@ def startpage(pageStr: str) -> int:
 
     if pageCounterMatcher1 is not None:
         start = int(pageCounterMatcher1.group(1))
-    else:
-        if pageCounterMatcher2 is not None:
-            start = int(pageCounterMatcher2.group(1))
+    elif pageCounterMatcher2 is not None:
+        start = int(pageCounterMatcher2.group(1))
     return start
 
 
@@ -63,11 +62,10 @@ def pagecount(pageStr: str) -> int:
         start = int(pageCounterMatcher1.group(1))
         end = int(pageCounterMatcher1.group(2))
         count = end - start + 1
-    else:
-        if pageCounterMatcher2 is not None:
-            start = int(pageCounterMatcher2.group(1))
-            end = int(pageCounterMatcher2.group(2))
-            count = end - start + 1
+    elif pageCounterMatcher2 is not None:
+        start = int(pageCounterMatcher2.group(1))
+        end = int(pageCounterMatcher2.group(2))
+        count = end - start + 1
     return count
 
 
@@ -696,14 +694,13 @@ def countPaper(
         return False
 
     # Special handling for EMSOFT (TECS).
-    if (
-        confname == "ACM Trans. Embedded Comput. Syst."
-        or confname == "ACM Trans. Embed. Comput. Syst."
-    ):
+    if confname in [
+        "ACM Trans. Embedded Comput. Syst.",
+        "ACM Trans. Embed. Comput. Syst.",
+    ]:
         if year not in EMSOFT_TECS:
             return False
-        pvmatcher = TECSCounterColon.match(pages)
-        if pvmatcher:
+        if pvmatcher := TECSCounterColon.match(pages):
             pseudovolume = int(pvmatcher.group(1))
             (startpv, endpv) = EMSOFT_TECS_PaperNumbers[year]
             if pseudovolume < int(startpv) or pseudovolume > int(endpv):
@@ -718,31 +715,26 @@ def countPaper(
         if not (
             int(volume) == EMSOFT_TCAD[year][0]
             and int(number) == EMSOFT_TCAD[year][1]
-            and int(startPage) in EMSOFT_TCAD_PaperStart[year]
+            and startPage in EMSOFT_TCAD_PaperStart[year]
         ):
             return False
 
     # Special handling for ISMB.
-    if confname == "Bioinformatics" or confname == "Bioinform.":
-        if year in ISMB_Bioinformatics:
-            (vol, num) = ISMB_Bioinformatics[year]
-            if (volume != str(vol)) or (number != str(num)):
-                return False
-            else:
-                if int(volume) >= 33:  # Hopefully this works going forward.
-                    pg = ISMBpageCounter.match(pages)
-                    if pg is None:
-                        return False
-                    startPage = int(pg.group(1))
-                    end = int(pg.group(2))
-                    pageCount = end - startPage + 1
-        else:
+    if confname in ["Bioinformatics", "Bioinform."]:
+        if year not in ISMB_Bioinformatics:
             return False
 
-    # Special handling for ICSE.
-    elif (
-        confname == "ICSE" or confname == "ICSE (1)" or confname == "ICSE (2)"
-    ):
+        (vol, num) = ISMB_Bioinformatics[year]
+        if volume != str(vol) or number != str(num):
+            return False
+        if int(volume) >= 33:  # Hopefully this works going forward.
+            pg = ISMBpageCounter.match(pages)
+            if pg is None:
+                return False
+            startPage = int(pg.group(1))
+            end = int(pg.group(2))
+            pageCount = end - startPage + 1
+    elif confname in ["ICSE", "ICSE (1)", "ICSE (2)"]:
         if year in ICSE_ShortPaperStart:
             pageno = ICSE_ShortPaperStart[year]
             if startPage >= pageno:
@@ -750,7 +742,6 @@ def countPaper(
                 # since they are "short papers" (regardless of their length).
                 return False
 
-    # Special handling for SIGMOD.
     elif confname == "SIGMOD Conference":
         if year in SIGMOD_NonResearchPaperStart:
             pageno = SIGMOD_NonResearchPaperStart[year]
@@ -764,11 +755,9 @@ def countPaper(
                 if startPage >= p[0] and startPage + pageCount - 1 <= p[1]:
                     return False
 
-    # Special handling for SIGGRAPH and SIGGRAPH Asia.
     elif confname == "ACM Trans. Graph.":
         return False  # should already have been handled by regenerate_data.py.
 
-    # Special handling for IEEE Vis and VR
     elif confname == "IEEE Trans. Vis. Comput. Graph.":
         Vis_Conf = False
         if year in TVCG_Vis_Volume:
@@ -782,20 +771,16 @@ def countPaper(
         if not Vis_Conf:
             return False
 
-    # Special handling for ASE.
     elif confname == "ASE":
         if pageCount < ASE_LongPaperThreshold:
             # Omit short papers (which may be demos, etc.).
             return False
 
-    # Disambiguate Innovations in (Theoretical) Computer Science from
-    # International Conference on Supercomputing
     elif confname == "ICS":
         if url is not None:
-            if url.find("innovations") != -1:
+            if "innovations" in url:
                 return False
 
-    # Special handling for DAC.
     elif confname == "DAC":
         if year in DAC_TooShortPapers:
             try:
@@ -822,7 +807,6 @@ def countPaper(
 
     if (pageCount != -1) and (pageCount < pageCountThreshold):
 
-        tooFewPages = True
         exceptionConference = False
         exceptionConference |= confname == "SC" and (
             year <= 2012 or year == 2020
@@ -840,9 +824,7 @@ def countPaper(
         exceptionConference |= (
             confname == "CHI" and year == 2018
         )  # FIXME - hopefully DBLP will fix
-        exceptionConference |= confname == "ICCAD" and (
-            year == 2016 or year == 2018
-        )
+        exceptionConference |= confname == "ICCAD" and year in {2016, 2018}
         exceptionConference |= confname == "CHI" and year == 2019
         exceptionConference |= confname == "FAST" and year == 2012
         exceptionConference |= confname == "DAC" and year == 2019
@@ -850,13 +832,8 @@ def countPaper(
             (pageCount < 0) or pageCount >= 3
         )  # to handle very old ISCA conferences; all papers are full papers in ISCA now
 
-        if exceptionConference:
-            tooFewPages = False
-
-    if tooFewPages:
-        return False
-
-    return True
+        tooFewPages = not exceptionConference
+    return not tooFewPages
 
 
 def test_countPaper():

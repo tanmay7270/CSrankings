@@ -33,9 +33,9 @@ with open("csrankings.csv", mode="w") as outfile:
     writer = csv.DictWriter(outfile, fieldnames)
     writer.writeheader()
     for i in list(string.ascii_lowercase + string.digits):
-        print("processing " + i)
+        print(f"processing {i}")
         try:
-            fname = "csrankings-" + i + ".csv"
+            fname = f"csrankings-{i}.csv"
             with open(fname, mode="r") as infile:
                 reader = csv.DictReader(infile)
                 for row in reader:
@@ -65,9 +65,8 @@ with open("csrankings.csv", mode="r") as infile:
                 )
                 facWriter.writeheader()
                 for row in reader:
-                    match = re.match("(.*)\s+\[(.*)\]", row["name"])
-                    if match:
-                        row["name"] = match.group(1)
+                    if match := re.match("(.*)\s+\[(.*)\]", row["name"]):
+                        row["name"] = match[1]
                     h = {"name": row["name"], "homepage": row["homepage"]}
                     homepageWriter.writerow(h)
                     s = {"name": row["name"], "scholarid": row["scholarid"]}
