@@ -43,7 +43,7 @@ trimstrings = [
 
 
 def find_fix(name, affiliation):
-    string = name + " " + affiliation
+    string = f"{name} {affiliation}"
     results = ""  # DISABLED GOOGLE SEARCH google.search(string, stop=1)
     actualURL = "http://csrankings.org"
     for url in results:
@@ -58,10 +58,7 @@ def find_fix(name, affiliation):
 
     # Output the name and this resolved URL.
     match = re.search("www.google.com", actualURL)
-    if match == None:
-        return actualURL
-    else:
-        return "http://csrankings.org"
+    return actualURL if match is None else "http://csrankings.org"
 
 
 # Load alias lists (name -> [aliases])
@@ -140,7 +137,7 @@ def visit_aliases(n):
         alias_list = aliases[n]
         for a in alias_list:
             if a in visited:
-                print("Cycle discovered: " + a)
+                print(f"Cycle discovered: {a}")
                 cycle_aliases[a] = True
             else:
                 visited[a] = True
@@ -151,45 +148,22 @@ def visit_aliases(n):
 for n in aliases:
     visit_aliases(n)
 
-if True:
-    aliases = new_aliases.copy()
-    for ca in cycle_aliases:
-        n = aliasToName[ca]
-        # Conservatively delete cycles when they are paired.
-        if n in aliases and ca in aliases:
-            del aliases[ca]
+aliases = new_aliases.copy()
+for ca in cycle_aliases:
+    n = aliasToName[ca]
+    # Conservatively delete cycles when they are paired.
+    if n in aliases and ca in aliases:
+        del aliases[ca]
 
 # Remove any aliases for names that aren't in the database.
 new_aliases = aliases.copy()
 for n in aliases:
-    if not n in csrankings:
+    if n not in csrankings:
         # Temporarily disabling culling of aliases because of the note suffix issue.
         found = True  # False
-        for a in aliases[n]:
-            pass
-            # if a in csrankings:
-            #    found = True
-            #    break
         if not found:
             del new_aliases[n]
 aliases = new_aliases
-
-# Rewrite aliases file without cycles or names not in the csrankings database.
-if False:
-    with open("dblp-aliases.csv-x", mode="w") as outfile:
-        sfieldnames = ["alias", "name"]
-        swriter = csv.DictWriter(outfile, fieldnames=sfieldnames)
-        swriter.writeheader()
-        for n in collections.OrderedDict(
-            sorted(aliases.items(), key=lambda t: t[0])
-        ):
-            for a in aliases[n]:
-                h = {"alias": a, "name": n}
-                swriter.writerow(h)
-        outfile.flush()
-        os.fsync(outfile.fileno())
-
-    os.rename("dblp-aliases.csv-x", "dblp-aliases.csv")
 
 # Add any missing aliases.
 for name in aliases:
@@ -197,7 +171,7 @@ for name in aliases:
         # Make sure all aliases are there.
         for a in aliases[name]:
             # Add any missing aliases.
-            if not a in csrankings:
+            if a not in csrankings:
                 csrankings[a] = csrankings[name]
     else:
         # There might be a name that isn't there but an alias that IS. If so, add the name.
@@ -224,24 +198,13 @@ for name in csrankings:
         if page != "NOSCHOLARPAGE":
             csrankings[name]["scholarid"] = page
 
-# Fix inconsistent home pages.
-if False:
-    for name in csrankings:
-        page = csrankings[name]["homepage"]
-        if name in aliases:
-            for a in aliases[name]:
-                if a in csrankings and csrankings[a]["homepage"] != page:
-                    if page == "http://csrankings.org":
-                        page = csrankings[a]["homepage"]
-                    csrankings[a]["homepage"] = page
-
 # Find and flag inconsistent affiliations.
 for name in csrankings:
     aff = csrankings[name]["affiliation"]
     if name in aliases:
         for a in aliases[name]:
             if a in csrankings and csrankings[a]["affiliation"] != aff:
-                print("INCONSISTENT AFFILIATION: " + name)
+                print(f"INCONSISTENT AFFILIATION: {name}")
 
 
 # Find and flag inconsistent Google Scholar pages.
@@ -250,7 +213,7 @@ for name in csrankings:
     if name in aliases:
         for a in aliases[name]:
             if a in csrankings and csrankings[a]["scholarid"] != sch:
-                print("INCONSISTENT SCHOLAR PAGE: " + name)
+                print(f"INCONSISTENT SCHOLAR PAGE: {name}")
 
 # Make sure that Google Scholar pages are not accidentally duplicated across different authors.
 # This can mean one of two things:
@@ -267,10 +230,10 @@ for name in csrankings:
     else:
         scholars[sch] = [name]
 
-clashes = []
 reverse_scholar = {}
-for sch in scholars:
-    if len(scholars[sch]) > 1:
+clashes = []
+for sch, value in scholars.items():
+    if len(value) > 1:
         # Verify all are aliases.
         total = len(scholars[sch])
         for name in scholars[sch]:
@@ -289,10 +252,7 @@ for n in sorted(
         mapscores = list(map(lambda name: (name, generated.get(name, 0)), n))
         # No point in trying to fix clashes if they don't appear in the output of CSrankings
         print(
-            "Google scholar entry "
-            + str(reverse_scholar[n[0]])
-            + " clashes and scores:"
-            + str(mapscores)
+            f"Google scholar entry {str(reverse_scholar[n[0]])} clashes and scores:{mapscores}"
         )
         affiliations = list(
             map(lambda nv: csrankings[nv[0]]["affiliation"], mapscores)
@@ -300,10 +260,10 @@ for n in sorted(
         print(affiliations)
         if affiliations[0] == affiliations[-1]:
             # All affiliations the same.
-            for (n, v) in mapscores:
+            for n, v in mapscores:
                 if v == 0.0:
-                    print("DELETING " + n + " (currently disabled)")
-                    # del csrankings[n]
+                    print(f"DELETING {n} (currently disabled)")
+                                    # del csrankings[n]
 
 
 # Look up web sites. If we get a 404 or similar, disable the homepage for now.
@@ -315,31 +275,27 @@ ks = ks[:count]
 
 for name in ks:
     page = csrankings[name]["homepage"]
-    print("Testing " + page + " (" + name + ")")
+    print(f"Testing {page} ({name})")
     try:
         r = requests.head(page, allow_redirects=True, timeout=3)
         print(r.status_code)
-        if (
-            (r.status_code == 404)
-            or (r.status_code == 410)
-            or (r.status_code == 500)
-        ):
+        if r.status_code in {404, 410, 500}:
             # prints the int of the status code. Find more at httpstatusrappers.com :)
-            print("SEARCHING NOW FOR FIX FOR " + name)
+            print(f"SEARCHING NOW FOR FIX FOR {name}")
             actualURL = find_fix(name, csrankings[name]["affiliation"])
-            print("changed to " + actualURL)
+            print(f"changed to {actualURL}")
             csrankings[name]["homepage"] = actualURL
             continue
         if r.status_code == 301:
-            print("redirect: changing home page from " + page + " to " + r.url)
+            print(f"redirect: changing home page from {page} to {r.url}")
             csrankings[name]["homepage"] = r.url
             continue
 
     except requests.ConnectionError:
         print("failed to connect")
-        print("SEARCHING NOW FOR FIX FOR " + name)
+        print(f"SEARCHING NOW FOR FIX FOR {name}")
         actualURL = find_fix(name, csrankings[name]["affiliation"])
-        print("changed to " + actualURL)
+        print(f"changed to {actualURL}")
         csrankings[name]["homepage"] = actualURL
     except:
         print("got me")

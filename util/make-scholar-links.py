@@ -97,10 +97,9 @@ def searchAuthor(name):
         for c in div.children:
             href = c.get("href")
             um = userMatcher.search(href)
-            if not um is None:
-                link = um.group(1)
+            if um is not None:
+                link = um[1]
                 return (name, link)
-                break
     return None
 
 
@@ -131,34 +130,19 @@ def getScholarID(name):
             return scholarLinks[name]
     actualID = "FIXME"
     try:
-        print("searching for " + name)
-        res = searchAuthor(name)
-        # print(res)
-        if res:
+        print(f"searching for {name}")
+        if res := searchAuthor(name):
             (author, link) = res
             # print("found "+author+", "+link+" (for " + name + ")")
             if author == name:
                 scholarLinks[origname] = link
                 return link
-        else:
-            pass
-            # print("SEARCH FAILED")
-    #        search_query = scholarly.search_author(name)
-    #        name = name.decode('utf8')
-    #        author = next(search_query).fill()
-    #        # print author
-    #        for (key, value) in author.__dict__.items():
-    #            if (key == "id"):
-    #                actualID = value
-    #                scholarLinks[origname] = actualID
-    #                return actualID
     except Exception as e:
-        print("[" + me + "] not found (exception)." + e)
+        print(f"[{me}] not found (exception).{e}")
         return None
     return None
 
 
-theCounter = 0
 scholarLinks1 = csv2dict_str_str("scholar.csv")
 # Sort
 scholarLinks = OrderedDict(sorted(scholarLinks1.items(), key=lambda t: t[0]))
@@ -171,6 +155,7 @@ newscholarLinks = {}
 
 
 random.shuffle(facultydictkeys)
+theCounter = 0
 for name in facultydictkeys:
     if theCounter >= maxBeforeEnd:
         break
@@ -197,63 +182,44 @@ for name in facultydictkeys:
 
     # print("["+me+"] checking "+name+" at "+dept)
     id = getScholarID(name)
-    if id == None:
+    if id is None:
         # Try to remove a middle name.
         r = re.match(".* [A-Z]\. *", name)
         if r != None:
             nomiddlename = re.sub(" [A-Z]\. ", " ", name)
             id = getScholarID(nomiddlename)
-    if id == None:
+    if id is None:
         continue
     # print("found "+id)
-    str = name + ", " + dept
+    str = f"{name}, {dept}"
     # print("["+me+"] "+str)
     newscholarLinks[name] = id
     #    name = name.decode('utf8')
     # print("["+me+"] " + name + "," + id)
-    print(
-        n
-        + ","
-        + facultydict[n]
-        + ","
-        + homepages[n]
-        + ","
-        + newscholarLinks[n]
-        + "\n"
-    )
+    print(f"{n},{facultydict[n]},{homepages[n]},{newscholarLinks[n]}" + "\n")
     # actualURL = "https://scholar.google.com/citations?user="+id+"&hl=en&oi=ao"
 
     sys.stdout.flush()
     time.sleep(10)
 
-for n in newscholarLinks:
-    print(
-        n
-        + ","
-        + facultydict[n]
-        + ","
-        + homepages[n]
-        + ","
-        + newscholarLinks[n]
-        + "\n"
-    )
+for n, value in newscholarLinks.items():
+    print(f"{n},{facultydict[n]},{homepages[n]},{value}" + "\n")
 
 # Write everything out.
 with codecs.open("scholar.csv", "a+", "utf8") as scholarFile:
     lockfile(scholarFile)
-    for n in newscholarLinks:
+    for n, value_ in newscholarLinks.items():
         try:
-            scholarFile.write(n + "," + newscholarLinks[n] + "\n")
+            scholarFile.write(f"{n},{value_}" + "\n")
         except Exception as e:
             print("file writing exception ")
             print(e)
-            pass
     unlockfile(scholarFile)
 with codecs.open("scholar-visited.csv", "a+", "utf8") as visitedFile:
     lockfile(visitedFile)
-    for n in newvisited:
+    for n, value__ in newvisited.items():
         try:
-            visitedFile.write(n.decode("utf8") + "," + newvisited[n] + "\n")
+            visitedFile.write(n.decode("utf8") + "," + value__ + "\n")
         except Exception:
             pass
     unlockfile(visitedFile)

@@ -24,29 +24,27 @@ def parseDBLP(facultydict):
 
             foundArticle = False
             inRange = False
-            authorsOnPaper = 0
             authorName = ""
             confname = ""
             year = -1
 
-            if node.tag == "inproceedings" or node.tag == "article":
+            if node.tag in ["inproceedings", "article"]:
 
                 # Check that dates are in the specified range.
 
                 # First, check if this is one of the conferences we are looking for.
 
                 for child in node:
-                    if child.tag == "booktitle" or child.tag == "journal":
-                        if True:  # INCLUDE ALL VENUES
-                            # if (confname in confdict):
-                            foundArticle = True
-                            confname = child.text
+                    if child.tag in ["booktitle", "journal"]:
+                        # if (confname in confdict):
+                        foundArticle = True
+                        confname = child.text
                         break
-                    if child.tag == "volume":
-                        volume = child.text
                     if child.tag == "number":
                         number = child.text
-                    if child.tag == "year":
+                    elif child.tag == "volume":
+                        volume = child.text
+                    elif child.tag == "year":
                         if child.text is not None:
                             year = int(child.text)
 
@@ -90,27 +88,23 @@ def parseDBLP(facultydict):
                     continue
 
                 coauthorsList = []
-                if not confname in confdict:
-                    areaname = "na"
-                else:
-                    areaname = confdict[confname]
-
+                areaname = "na" if confname not in confdict else confdict[confname]
+                authorsOnPaper = 0
                 for child in node:
                     if child.tag == "author":
                         authorName = child.text
                         authorName = authorName.strip()
-                        if True:  # authorName in facultydict):
-                            authorsOnPaper += 1
-                            if not authorName in coauthors:
-                                coauthors[authorName] = {}
-                            if not (year, areaname) in coauthors[authorName]:
-                                coauthors[authorName][(year, areaname)] = set(
-                                    []
-                                )
-                            coauthorsList.append(authorName)
-                            papersWritten[authorName] = (
-                                papersWritten.get(authorName, 0) + 1
+                        authorsOnPaper += 1
+                        if authorName not in coauthors:
+                            coauthors[authorName] = {}
+                        if (year, areaname) not in coauthors[authorName]:
+                            coauthors[authorName][(year, areaname)] = set(
+                                []
                             )
+                        coauthorsList.append(authorName)
+                        papersWritten[authorName] = (
+                            papersWritten.get(authorName, 0) + 1
+                        )
 
                 # No authors? Bail.
                 if authorsOnPaper == 0:
@@ -133,25 +127,23 @@ def parseDBLP(facultydict):
                                             (year, areaname)
                                         ].add(authorName)
 
-    o = open("faculty-coauthors.csv", "w")
-    o.write('"author","coauthor","year","area"\n')
-    for auth in coauthors:
-        if auth in facultydict:
-            for (year, area) in coauthors[auth]:
-                for coauth in coauthors[auth][(year, area)]:
-                    if papersWritten[coauth] >= authorPaperCountThreshold:
-                        o.write(auth)
-                        # o.write(auth.encode('utf-8'))
-                        o.write(",")
-                        o.write(coauth)
-                        # o.write(coauth.encode('utf-8'))
-                        o.write(",")
-                        o.write(str(year))
-                        o.write(",")
-                        o.write(area)
-                        o.write("\n")
-    o.close()
-
+    with open("faculty-coauthors.csv", "w") as o:
+        o.write('"author","coauthor","year","area"\n')
+        for auth, value in coauthors.items():
+            if auth in facultydict:
+                for (year, area) in value:
+                    for coauth in coauthors[auth][(year, area)]:
+                        if papersWritten[coauth] >= authorPaperCountThreshold:
+                            o.write(auth)
+                            # o.write(auth.encode('utf-8'))
+                            o.write(",")
+                            o.write(coauth)
+                            # o.write(coauth.encode('utf-8'))
+                            o.write(",")
+                            o.write(str(year))
+                            o.write(",")
+                            o.write(area)
+                            o.write("\n")
     return 0
 
 

@@ -18,6 +18,7 @@ def parseDBLP(facultydict):
 
         oldnode = None
 
+        confname = ""
         for (event, node) in ElementTree.iterparse(f, events=["start", "end"]):
 
             if oldnode is not None:
@@ -25,12 +26,10 @@ def parseDBLP(facultydict):
             oldnode = node
 
             inRange = False
-            authorsOnPaper = 0
             authorName = ""
-            confname = ""
             year = -1
 
-            if node.tag == "inproceedings" or node.tag == "article":
+            if node.tag in ["inproceedings", "article"]:
 
                 # It's a booktitle or journal, and it's one of our conferences.
 
@@ -49,6 +48,7 @@ def parseDBLP(facultydict):
                     # Out of range.
                     continue
 
+                authorsOnPaper = 0
                 # Now, count up how many faculty from our list are on this paper.
 
                 for child in node:
@@ -166,5 +166,5 @@ for k in facultydict:
         stream = os.popen(cmd)
         for line in stream:
             x = line.rstrip()
-            print(x + " , " + institution.encode("utf8"))
+            print(f"{x} , " + institution.encode("utf8"))
         # os.system(cmd)

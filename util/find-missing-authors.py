@@ -19,10 +19,10 @@ def parseDBLP():
                 oldnode.clear()
             oldnode = node
 
-            if node.tag == "inproceedings" or node.tag == "article":
+            if oldnode.tag in ["inproceedings", "article"]:
 
-                for child in node:
-                    if child.tag == "booktitle" or child.tag == "journal":
+                for child in oldnode:
+                    if child.tag in ["booktitle", "journal"]:
                         foundArticle = True
                         break
 
@@ -30,9 +30,7 @@ def parseDBLP():
                     # Nope.
                     continue
 
-                # Now, count up how many faculty from our list are on this paper.
-
-                for child in node:
+                for child in oldnode:
                     if child.tag == "author":
                         authorName = child.text
                         if authorName is not None:

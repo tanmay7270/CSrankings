@@ -24,7 +24,6 @@ def parseDBLP(facultydict):
             foundArticle = True  # include all venues
             # foundArticle = False
             inRange = False
-            authorsOnPaper = 0
             authorName = ""
             confname = ""
             year = -1
@@ -32,19 +31,19 @@ def parseDBLP(facultydict):
             foundOneInDict = False
             volume = 0
 
-            if node.tag == "inproceedings" or node.tag == "article":
+            if node.tag in ["inproceedings", "article"]:
 
+                authorsOnPaper = 0
                 # First, check if this is one of the conferences we are looking for.
 
                 for child in node:
-                    if child.tag == "booktitle" or child.tag == "journal":
+                    if child.tag in ["booktitle", "journal"]:
                         confname = child.text
-                        if True:  # INCLUDE ALL VENUES
-                            # was: if (confname in confdict):
-                            foundArticle = True
+                        # was: if (confname in confdict):
+                        foundArticle = True
                     if child.tag == "volume":
                         volume = child.text
-                    if child.tag == "year":
+                    elif child.tag == "year":
                         if child.text is not None:
                             year = int(child.text)
                     if child.tag == "pages":
@@ -64,11 +63,6 @@ def parseDBLP(facultydict):
                 if confname is None:
                     continue
 
-                if confname not in csrankings.confdict:
-                    areaname = "na"
-                else:
-                    areaname = csrankings.confdict[confname]
-
                 # Check that dates are in the specified range.
                 if (year >= startyear) and (year <= endyear):
                     inRange = True
@@ -78,6 +72,11 @@ def parseDBLP(facultydict):
                     continue
 
                 tooFewPages = False
+                areaname = (
+                    "na"
+                    if confname not in csrankings.confdict
+                    else csrankings.confdict[confname]
+                )
                 if (pageCount != -1) and (
                     pageCount < csrankings.pageCountThreshold
                 ):
@@ -104,16 +103,7 @@ def parseDBLP(facultydict):
                         authorName = child.text
                         authorName = authorName.strip()
                         if authorName in facultydict:
-                            print(
-                                "here we go"
-                                + authorName
-                                + " "
-                                + confname
-                                + " "
-                                + str(authorsOnPaper)
-                                + " "
-                                + str(year)
-                            )
+                            print(f"here we go{authorName} {confname} {str(authorsOnPaper)} {str(year)}")
                             logstring = authorName.encode("utf-8")
                             logstring += " ; ".encode("utf-8")
                             logstring += confname.encode("utf-8")
@@ -149,23 +139,22 @@ fdict = csrankings.csv2dict_str_str("faculty-affiliations.csv")
     fdict
 )
 
-f = open("all-author-info.csv", "w")
-f.write('"name","dept","area","count","adjustedcount","year"\n')
-for (authorName, area, year) in authscores_gl:
-    count = authscores_gl[(authorName, area, year)]
-    countAdjusted = authscoresAdjusted_gl[(authorName, area, year)]
-    # f.write(authorName.encode('utf-8'))
-    f.write(authorName)
-    f.write(",")
-    # f.write((fdict[authorName]).encode('utf-8'))
-    f.write((fdict[authorName]))
-    f.write(",")
-    f.write(area)
-    f.write(",")
-    f.write(str(count))
-    f.write(",")
-    f.write(str(countAdjusted))
-    f.write(",")
-    f.write(str(year))
-    f.write("\n")
-f.close()
+with open("all-author-info.csv", "w") as f:
+    f.write('"name","dept","area","count","adjustedcount","year"\n')
+    for (authorName, area, year) in authscores_gl:
+        count = authscores_gl[(authorName, area, year)]
+        countAdjusted = authscoresAdjusted_gl[(authorName, area, year)]
+        # f.write(authorName.encode('utf-8'))
+        f.write(authorName)
+        f.write(",")
+        # f.write((fdict[authorName]).encode('utf-8'))
+        f.write((fdict[authorName]))
+        f.write(",")
+        f.write(area)
+        f.write(",")
+        f.write(str(count))
+        f.write(",")
+        f.write(str(countAdjusted))
+        f.write(",")
+        f.write(str(year))
+        f.write("\n")

@@ -22,15 +22,13 @@ def parseDBLP(facultydict):
             if oldnode is not None:
                 oldnode.clear()
             oldnode = node
-            authors = 0
-            authorList = []
+            if oldnode.tag == "www":
+                authors = 0
+                authorList = []
 
-            # print((node.tag))
-            if node.tag == "www":
-                for child in node:
+                for child in oldnode:
                     if child.tag == "author":
-                        authorName = child.text
-                        if authorName:
+                        if authorName := child.text:
                             authorName = authorName.strip()
                             authors += 1
                             authorList.append(authorName.encode("utf-8"))

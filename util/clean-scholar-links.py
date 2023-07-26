@@ -47,7 +47,7 @@ checked1 = csv2dict_str_str("scholar-visited.csv")
 checked = OrderedDict(sorted(checked1.items(), key=lambda t: t[0]))
 
 now = time.time()
-os.rename("scholar-visited.csv", "scholar-visited-" + str(now) + ".csv")
+os.rename("scholar-visited.csv", f"scholar-visited-{str(now)}.csv")
 with codecs.open("scholar-visited.csv", "w", "utf8") as visitedFile:
     visitedFile.write("name,date\n")
     for name in checked:
@@ -55,4 +55,4 @@ with codecs.open("scholar-visited.csv", "w", "utf8") as visitedFile:
             name.decode("utf8") + "," + str(checked[name]) + "\n"
         )
 
-os.remove("scholar-visited-" + str(now) + ".csv")
+os.remove(f"scholar-visited-{str(now)}.csv")
